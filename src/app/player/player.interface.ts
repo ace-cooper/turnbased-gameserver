@@ -8,5 +8,6 @@ export interface BattlePlayerTrait {
     socket: Socket;
     ready: boolean;
     battleId: string;
+    isNPC: boolean;
     hp: number;
 }

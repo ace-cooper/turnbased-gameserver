@@ -21,6 +21,7 @@ class BattleService {
     player2.team = 'Team 2';
     player2.ready = false;
     player2.battleId = id;
+    player2.isNPC = true;
 
     return {
         id,
@@ -61,16 +62,22 @@ class BattleService {
 
   }
 
+
   async processRound(battle: BattleTrait): Promise<boolean> {
     const ctx = getCtx();
     const tick = ctx.get('tick') || 0;
     // TODO
     switch (battle.status) {
         case BattleStatus.WAITING:
-            if (tick >= this.lastTick + 30000 / BATTLE_SERVER.TICK_INTERVAL || battle.ready) {
+            if (battle.ready) {
                 await this.updateCurrentBattleStatus(battle, BattleStatus.READY);
                 this.lastTick = tick;
                 this.sendAllPlayers(battle, 'status', { message: `All players connected. Battle is ready to start!`});
+            } else if (tick >= this.lastTick + 40000 / BATTLE_SERVER.TICK_INTERVAL) {
+                await this.updateCurrentBattleStatus(battle, BattleStatus.TERMINATED);
+                this.lastTick = tick;
+                this.sendAllPlayers(battle, 'status', { message: `Battle finished. No players connected.`});
+                return true;
             }
             break;
         case BattleStatus.READY:
@@ -149,7 +156,8 @@ class BattleService {
     let ready = true;
     for (const i in battle.teams) {
         for (const j in battle.teams[i].players) {
-            console.log(`verifying ${battle.teams[i].players[j].id}, token ${battle.teams[i].players[j].token} === ${playerToken}`, )
+            if (battle.teams[i].players[j].isNPC) battle.teams[i].players[j].ready = true;
+
             if (battle.teams[i].players[j].token === playerToken && !battle.teams[i].players[j].ready) {
                 battle.teams[i].players[j].socket = socket;
                 battle.teams[i].players[j].ready = true;

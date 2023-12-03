@@ -5,7 +5,8 @@ export enum BattleStatus {
     READY = 'ready',
     RUNNING = 'running',
     BREAK = 'break',
-    FINISHED = 'finished'
+    FINISHED = 'finished',
+    TERMINATED = 'terminated'
 }
 
 export interface BattleTrait {

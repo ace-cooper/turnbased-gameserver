@@ -10,7 +10,7 @@
       "runtimeExecutable": "${env:HOME}/.nvm/versions/node/v16.20.0/bin/node",
       "program": "${workspaceFolder}/servers/battle/index.ts",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["test"]
+      "args": ["01HGR6DVX57TB4ACGTJC84F78T"]
     },
   ]
 }

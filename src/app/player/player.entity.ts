@@ -11,6 +11,8 @@ export class PlayerBattleEntity implements BattlePlayerTrait {
     battleId: string;
     hp: number = 100;
 
+    isNPC: boolean;
+
     constructor(public id: string, public token: string) {
 
     }
