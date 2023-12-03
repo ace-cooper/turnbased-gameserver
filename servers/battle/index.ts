@@ -3,7 +3,7 @@ import { BATTLE_SERVER } from "../../src/core/config";
 import { BattleTrait } from "../../src/app/battle/battle.interface";
 import { battleService } from "../../src/app/battle/battle.service";
 import { start as socketServerStart } from "./socket-gateway";
-import { Server, createServer } from "http";
+import { Server, createServer, get } from "http";
 
 let interval: NodeJS.Timeout;
 let battleData: BattleTrait;

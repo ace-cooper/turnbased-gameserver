@@ -15,4 +15,9 @@ export interface BattleTrait {
     teams: BattleTeamTrait[];
     status: BattleStatus;
     ready?: boolean;
+    log: {
+        action: string;
+        data: any;
+        tick: number;
+    }[];
 }

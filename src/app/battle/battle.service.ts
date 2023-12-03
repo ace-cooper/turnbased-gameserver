@@ -8,6 +8,7 @@ class BattleService {
   private lastTick: number = 0;
   private roundStartTick: number = 0;
   private round: number = 0;
+  private startedTick: number = 0;
 
   async getBattleById(id: string): Promise<BattleTrait> {
     const player1: PlayerBattleEntity = new PlayerBattleEntity('1', '01HGR1MFE9RR47FR8RT27S7J1W');
@@ -37,7 +38,8 @@ class BattleService {
             players: [player2],
             battleId: id
         }],
-        status: BattleStatus.WAITING
+        status: BattleStatus.WAITING,
+        log: []
     }
   }
 
@@ -82,15 +84,40 @@ class BattleService {
             break;
         case BattleStatus.READY:
             if (tick >= this.lastTick + 5000 / BATTLE_SERVER.TICK_INTERVAL) {
+                battle.log.push({
+                    action: 'status',
+                    data: { status: BattleStatus.RUNNING},
+                    tick: 0
+                });
                 await this.updateCurrentBattleStatus(battle, BattleStatus.RUNNING);
                 this.lastTick = tick;
                 this.roundStartTick = tick;
                 this.round++;
                 this.sendAllPlayers(battle, 'status', { message: `Round ${this.round}, FIGHT!`});
+                this.startedTick = tick;
             }
             break;
         case BattleStatus.RUNNING:
             if (this.roundStartTick + 30000 / BATTLE_SERVER.TICK_INTERVAL <= tick) {
+                battle.log.push({
+                    action: 'status',
+                    data: {
+                        status: BattleStatus.BREAK,
+                        teams: battle.teams.map((team) => {
+                            return {
+                                name: team.name,
+                                players: team.players.map((player) => {
+                                    return {
+                                        name: player.name,
+                                        id: player.id,
+                                        hp: player.hp
+                                    }
+                                })
+                            }
+                        })
+                    },
+                    tick: tick - this.startedTick
+                });
                 await this.updateCurrentBattleStatus(battle, BattleStatus.BREAK);
                 this.lastTick = tick;
                 this.roundStartTick = tick;
@@ -103,9 +130,60 @@ class BattleService {
                 console.log(`** Round ${this.round} **`);
                 this.sendAllPlayers(battle, 'attack', { message: `Player 1 attacks Player 2 with ${attack1.name} and deals ${attack1.damage} damage`});
                 battle.teams[1].players[0].hp = Math.max(0, battle.teams[1].players[0].hp - attack1.damage);
+                battle.log.push({
+                    action: 'attack',
+                    data: {
+                        attacker: battle.teams[0].players[0].name,
+                        defender: battle.teams[1].players[0].name,
+                        attack: attack1.name,
+                        damage: attack1.damage
+                    },
+                    tick: tick - this.startedTick
+                });
                 this.sendAllPlayers(battle, 'attack', { message: `Player 2 attacks Player 1 with ${attack2.name} and deals ${attack2.damage} damage`});
                 battle.teams[0].players[0].hp = Math.max(0, battle.teams[0].players[0].hp - attack2.damage);
+                battle.log.push({
+                    action: 'attack',
+                    data: {
+                        attacker: battle.teams[1].players[0].name,
+                        defender: battle.teams[0].players[0].name,
+                        attack: attack2.name,
+                        damage: attack2.damage
+                    },
+                    tick: tick - this.startedTick
+                });
                 this.showBattleInfo(battle);
+
+                battle.log.push({
+                    action: 'attack',
+                    data: {
+                        attacker: battle.teams[0].players[0].name,
+                        defender: battle.teams[1].players[0].name,
+                        attack: attack1.name,
+                        damage: attack1.damage
+                    },
+                    tick: tick - this.startedTick
+                });
+
+                battle.log.push({
+                    action: 'status',
+                    data: {
+                        status: BattleStatus.RUNNING,
+                        teams: battle.teams.map((team) => {
+                            return {
+                                name: team.name,
+                                players: team.players.map((player) => {
+                                    return {
+                                        name: player.name,
+                                        id: player.id,
+                                        hp: player.hp
+                                    }
+                                })
+                            }
+                        })
+                    },
+                    tick: tick - this.startedTick
+                });
 
                 if (battle.teams[0].players[0].hp === 0) {
           
@@ -116,6 +194,8 @@ class BattleService {
                  
                     await this.updateCurrentBattleStatus(battle, BattleStatus.FINISHED);
                     this.sendAllPlayers(battle, 'status', { message: `Player 1 wins!`});
+                } else {
+                    await this.setCurrentBattleData(battle);
                 }
                 this.lastTick = tick;
             }
@@ -139,6 +219,28 @@ class BattleService {
             break;
         case BattleStatus.FINISHED:
             if (this.lastTick + 3000 / BATTLE_SERVER.TICK_INTERVAL <= tick) {
+                battle.log.push({
+                    action: 'status',
+                    data: {
+                        status: BattleStatus.FINISHED,
+                        teams: battle.teams.map((team) => {
+                            return {
+                                name: team.name,
+                                players: team.players.map((player) => {
+                                    return {
+                                        name: player.name,
+                                        id: player.id,
+                                        hp: player.hp
+                                    }
+                                })
+                            }
+                        })
+                    },
+                    tick: tick - this.startedTick
+                });
+
+                await this.setCurrentBattleData(battle);
+                await this.sendAllPlayers(battle, 'status', { message: `Battle finished.`, log: battle.log});
                 return true;
             }
             break;
