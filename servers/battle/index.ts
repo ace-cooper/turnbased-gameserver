@@ -18,7 +18,7 @@ const getBattleData = async () => {
     return battleData;
 }
 
-export const handler = async () => { 
+export const tickHandler = async () => { 
     const done = await withCtx<boolean>({ tick }, async (ctx) => {
         if (tick%300 === 0) { 
             // log
@@ -61,7 +61,7 @@ export const start = async () => {
         httpServer.listen(BATTLE_SERVER.PORT);
         console.log('Battle server listening on port', BATTLE_SERVER.PORT);
         // start event loop
-        interval = setInterval(handler, BATTLE_SERVER.TICK_INTERVAL);
+        interval = setInterval(tickHandler, BATTLE_SERVER.TICK_INTERVAL);
     } catch(e) {
         console.error('Battle server failed to start', e);
         // log

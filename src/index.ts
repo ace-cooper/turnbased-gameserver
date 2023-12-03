@@ -1,1 +1,1 @@
-export { handler as battle } from '../servers/battle/index';
+export { tickHandler as battle } from '../servers/battle/index';
