@@ -12,7 +12,8 @@
       "runtimeArgs": ["--loader", "ts-node/esm", "--experimental-specifier-resolution=node"],
       "runtimeExecutable": "${env:HOME}/.nvm/versions/node/v16.20.0/bin/node",
       "program": "${workspaceFolder}/servers/battle/index.ts",
-      "envFile": "${workspaceFolder}/.env"
+      "envFile": "${workspaceFolder}/.env",
+      "args": ["teste"]
     },
   ]
 }
