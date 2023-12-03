@@ -5,7 +5,7 @@ export type Ctx = Map<string, any>;
 
 export const withCtx = async <R>(
     ctx: any,
-    block: (ctx: Ctx) => R
+    block: (ctx: Ctx) => Promise<R>
   ): Promise<R> => {
   const localCtx = { ...ctx };
 
