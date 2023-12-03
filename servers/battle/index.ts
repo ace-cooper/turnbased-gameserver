@@ -34,7 +34,10 @@ export const handler = async () => {
             httpServer.close();
             // log
             console.log(`Battle server stopped after ${tick} ticks`);
+        } catch(e) {
+            console.error('Battle server failed to stop', e);
         } finally {
+            process.exit(0);
             return;
         }
     }

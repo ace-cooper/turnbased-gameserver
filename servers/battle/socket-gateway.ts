@@ -21,6 +21,7 @@ export const start = async (httpServer: HttpServer) => {
             const authToken = socket.handshake.headers.token as string; 
             
             if (isValidPlayer(authToken, battleData)) {
+                setupPlayer(socket, battleData, setBattleData);
                 return next();
             }
 
@@ -57,6 +58,19 @@ const isValidPlayer = (playerId: string, battleData: BattleTrait): boolean => {
     }
     return false;
 };
+
+const setupPlayer = async (socket: Socket, battleData: BattleTrait, setBattleData: (data) => Promise<void>) => {
+    const authToken = socket.handshake.headers.token as string; 
+
+    for (const i in battleData.teams) {
+        if (battleData.teams[i].players[0].id === authToken && !battleData.teams[i].players[0].ready) {
+            battleData.teams[i].players[0].socket = socket;
+            battleData.teams[i].players[0].ready = true;
+            await setBattleData(battleData);
+            return;
+        }
+    }
+}
 
 const handlePlayerAction = async (socket: Socket, actionData: any) => {
     console.log(`Action received from ${socket.id}:`, actionData);

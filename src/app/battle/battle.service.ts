@@ -13,14 +13,12 @@ class BattleService {
     const player1: PlayerBattleEntity = new PlayerBattleEntity('1');
     player1.name = 'player1';
     player1.team = '1';
-    player1.socket = '1';
     player1.ready = false;
     player1.battleId = id;
 
     const player2: PlayerBattleEntity = new PlayerBattleEntity('2');
     player2.name = 'player2';
     player2.team = '2';
-    player2.socket = '2';
     player2.ready = false;
     player2.battleId = id;
 
@@ -94,9 +92,9 @@ class BattleService {
                 const attack2 = await battle.teams[1].players[0].attack();
 
                 console.log(`** Round ${this.round} **`);
-                console.log(`Player 1 attacks Player 2 with ${attack1.name} and deals ${attack1.damage} damage`);
+                this.sendAllPlayers(battle, 'attack', { message: `Player 1 attacks Player 2 with ${attack1.name} and deals ${attack1.damage} damage`});
                 battle.teams[1].players[0].hp = Math.max(0, battle.teams[1].players[0].hp - attack1.damage);
-                console.log(`Player 2 attacks Player 1 with ${attack2.name} and deals ${attack2.damage} damage`);
+                this.sendAllPlayers(battle, 'attack', { message: `Player 2 attacks Player 1 with ${attack2.name} and deals ${attack2.damage} damage`});
                 battle.teams[0].players[0].hp = Math.max(0, battle.teams[0].players[0].hp - attack2.damage);
                 this.showBattleInfo(battle);
 
@@ -144,7 +142,14 @@ class BattleService {
   }
 
   private async sendAllPlayers(battle: BattleTrait, event: string, data: any): Promise<void> {
-
+    console.log(data.message);
+    for (const team of battle.teams) {
+        for (const player of team.players) {
+            if (player.socket) {
+                player.socket.emit(event, data);
+            }
+        }
+    }
   }
 }
 
