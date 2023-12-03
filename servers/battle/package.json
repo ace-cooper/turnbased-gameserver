@@ -1,11 +1,11 @@
 {
-  "name": "turnbased-gameserver",
+  "name": "battle",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -13,8 +13,5 @@
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2"
-  },
-  "workspaces": [
-    "servers/battle"
-  ]
+  }
 }

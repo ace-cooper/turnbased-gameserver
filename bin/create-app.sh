@@ -29,14 +29,17 @@ npm pkg delete main -w $BASE_APP_FOLDER/$1
 
 echo -e "export const handler = async (event) => { console.log(\"$name handler is working!\"); };" >> $BASE_APP_FOLDER/$1/index.ts
 
-echo -e '{
-  "extends": "../../../tsconfig.json",
-  "compilerOptions": {
-    "rootDir": "../../.././",
-    "outDir": "../../../dist"
+relativePath=$(realpath --relative-to=$SRC_FOLDER $BASE_APP_FOLDER/$1)
+relativeRootPath=$(realpath --relative-to=$BASE_APP_FOLDER/$1 $ROOT_FOLDER)
+
+echo -e "{
+  \"extends\": \"$relativeRootPath/tsconfig.json\",
+  \"compilerOptions\": {
+    \"rootDir\": \"$relativeRootPath/\",
+    \"outDir\": \"$relativeRootPath/dist\"
   },
-  "references": []
-}' >> $BASE_APP_FOLDER/$1/tsconfig.json
+  \"references\": []
+}" >> $BASE_APP_FOLDER/$1/tsconfig.json
 
 name=$(echo "$1" | sed -E 's/(-)([a-z])/\U\2/g; s/-//g')
-echo -e "export { handler as $name } from './$BASE_APP_FOLDER/$1/index';" >> $SRC_FOLDER/index.ts
+echo -e "export { handler as $name } from '$relativePath/index';" >> $SRC_FOLDER/index.ts
