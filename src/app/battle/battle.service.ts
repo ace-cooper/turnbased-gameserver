@@ -1,6 +1,6 @@
 import { BATTLE_SERVER } from "../../core/config";
 import { getCtx } from "../../core/context";
-import { PlayerBattleEntity } from "../player/player.entity";
+import { PlayerBattleEntity, PlayerSocket } from "../player/player.entity";
 import { BattleStatus, BattleTrait } from "./battle.interface";
 
 class BattleService {
@@ -10,15 +10,15 @@ class BattleService {
   private round: number = 0;
 
   async getBattleById(id: string): Promise<BattleTrait> {
-    const player1: PlayerBattleEntity = new PlayerBattleEntity('1');
-    player1.name = 'player1';
-    player1.team = '1';
+    const player1: PlayerBattleEntity = new PlayerBattleEntity('1', '01HGR1MFE9RR47FR8RT27S7J1W');
+    player1.name = 'Player 1';
+    player1.team = 'Team 1';
     player1.ready = false;
     player1.battleId = id;
 
-    const player2: PlayerBattleEntity = new PlayerBattleEntity('2');
-    player2.name = 'player2';
-    player2.team = '2';
+    const player2: PlayerBattleEntity = new PlayerBattleEntity('2', '01HGR1N6TQWSCSJ6SDAXBZEQDK');
+    player2.name = 'Player 2';
+    player2.team = 'Team 2';
     player2.ready = false;
     player2.battleId = id;
 
@@ -27,12 +27,12 @@ class BattleService {
         name: 'test',
         teams: [{
             id: '1',
-            name: 'team1',
+            name: 'Team 1',
             players: [player1],
             battleId: id
         }, {
             id: '2',
-            name: 'team2',
+            name: 'Team 2',
             players: [player2],
             battleId: id
         }],
@@ -67,9 +67,10 @@ class BattleService {
     // TODO
     switch (battle.status) {
         case BattleStatus.WAITING:
-            if (tick >= this.lastTick + 30000 / BATTLE_SERVER.TICK_INTERVAL) {
+            if (tick >= this.lastTick + 30000 / BATTLE_SERVER.TICK_INTERVAL || battle.ready) {
                 await this.updateCurrentBattleStatus(battle, BattleStatus.READY);
                 this.lastTick = tick;
+                this.sendAllPlayers(battle, 'status', { message: `All players connected. Battle is ready to start!`});
             }
             break;
         case BattleStatus.READY:
@@ -78,6 +79,7 @@ class BattleService {
                 this.lastTick = tick;
                 this.roundStartTick = tick;
                 this.round++;
+                this.sendAllPlayers(battle, 'status', { message: `Round ${this.round}, FIGHT!`});
             }
             break;
         case BattleStatus.RUNNING:
@@ -99,12 +101,14 @@ class BattleService {
                 this.showBattleInfo(battle);
 
                 if (battle.teams[0].players[0].hp === 0) {
-                    console.log('Player 2 wins!');
+          
                     await this.updateCurrentBattleStatus(battle, BattleStatus.FINISHED);
+                    this.sendAllPlayers(battle, 'status', { message: `Player 2 wins!`});
     
                 } else if (battle.teams[1].players[0].hp === 0) {
-                    console.log('Player 1 wins!');
+                 
                     await this.updateCurrentBattleStatus(battle, BattleStatus.FINISHED);
+                    this.sendAllPlayers(battle, 'status', { message: `Player 1 wins!`});
                 }
                 this.lastTick = tick;
             }
@@ -122,6 +126,8 @@ class BattleService {
                 await this.updateCurrentBattleStatus(battle, BattleStatus.RUNNING);
                 this.lastTick = tick;
                 this.round++;
+                this.sendAllPlayers(battle, 'status', { message: `Round break over.`});
+                this.sendAllPlayers(battle, 'status', { message: `Round ${this.round}, FIGHT!`});
             } 
             break;
         case BattleStatus.FINISHED:
@@ -136,9 +142,37 @@ class BattleService {
     return false;
   }
 
+  public async joinBattle(playerToken: string, socket: PlayerSocket): Promise<boolean> {
+    const battle = await this.getCurrentBattleData();
+
+    let playerFound: PlayerBattleEntity;
+    let ready = true;
+    for (const i in battle.teams) {
+        for (const j in battle.teams[i].players) {
+            console.log(`verifying ${battle.teams[i].players[j].id}, token ${battle.teams[i].players[j].token} === ${playerToken}`, )
+            if (battle.teams[i].players[j].token === playerToken && !battle.teams[i].players[j].ready) {
+                battle.teams[i].players[j].socket = socket;
+                battle.teams[i].players[j].ready = true;
+                playerFound = battle.teams[i].players[j];
+            } else if (!battle.teams[i].players[j].ready) {
+                ready = false;
+            }
+        }
+    }
+
+    if (!playerFound) {
+        return false;
+    } else {
+        this.sendAllPlayers(battle, 'join', { message: `Player ${playerFound.name} joined the battle`});
+    }
+
+    battle.ready = ready;
+    await this.setCurrentBattleData(battle);
+    return true;
+  }
+
   private showBattleInfo(battle: BattleTrait): void {
-    console.log(`Player 1 HP: ${battle.teams[0].players[0].hp}`);
-    console.log(`Player 2 HP: ${battle.teams[1].players[0].hp}`);
+    this.sendAllPlayers(battle, 'status', { message: `${battle.teams[0].players[0].name} HP: ${battle.teams[0].players[0].hp} | ${battle.teams[1].players[0].name} HP: ${battle.teams[1].players[0].hp}`});
   }
 
   private async sendAllPlayers(battle: BattleTrait, event: string, data: any): Promise<void> {
@@ -146,10 +180,14 @@ class BattleService {
     for (const team of battle.teams) {
         for (const player of team.players) {
             if (player.socket) {
-                player.socket.emit(event, data);
+                this.send(player.socket, event, data);
             }
         }
     }
+  }
+
+  private async send(socket: PlayerSocket, event: string, data: any): Promise<void> {
+    socket.emit(event, data);
   }
 }
 

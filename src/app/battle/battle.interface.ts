@@ -13,4 +13,5 @@ export interface BattleTrait {
     name: string;
     teams: BattleTeamTrait[];
     status: BattleStatus;
+    ready?: boolean;
 }

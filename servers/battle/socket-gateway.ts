@@ -5,6 +5,7 @@ import { BattlePlayerTrait } from "../../src/app/player/player.interface";
 import { getCtx, getCtxData, withCtx } from "../../src/core/context";
 import { loadClasses, INPUT_LAYER_NAME_PATTERNS } from "../../src/core/core";
 import path from "path";
+import { battleService } from "../../src/app/battle/battle.service";
 
 const gateways = loadClasses(path.resolve(__dirname, '../../src/app'), INPUT_LAYER_NAME_PATTERNS.GATEWAY);
 
@@ -20,8 +21,7 @@ export const start = async (httpServer: HttpServer) => {
         try {
             const authToken = socket.handshake.headers.token as string; 
             
-            if (isValidPlayer(authToken, battleData)) {
-                setupPlayer(socket, battleData, setBattleData);
+            if (await withCtx({ getBattleData, setBattleData, playerSocket: socket }, async () => setupPlayer(socket))) {
                 return next();
             }
 
@@ -49,9 +49,9 @@ export const start = async (httpServer: HttpServer) => {
     });
 };
 
-const isValidPlayer = (playerId: string, battleData: BattleTrait): boolean => {
+const isValidPlayer = (token: string, battleData: BattleTrait): boolean => {
     for (const team of battleData.teams) {
-        const player = team.players.find((p: BattlePlayerTrait) => p.id === playerId);
+        const player = team.players.find((p: BattlePlayerTrait) => p.token === token);
         if (player) {
             return true;
         }
@@ -59,17 +59,9 @@ const isValidPlayer = (playerId: string, battleData: BattleTrait): boolean => {
     return false;
 };
 
-const setupPlayer = async (socket: Socket, battleData: BattleTrait, setBattleData: (data) => Promise<void>) => {
+const setupPlayer = async (socket: Socket) => {
     const authToken = socket.handshake.headers.token as string; 
-
-    for (const i in battleData.teams) {
-        if (battleData.teams[i].players[0].id === authToken && !battleData.teams[i].players[0].ready) {
-            battleData.teams[i].players[0].socket = socket;
-            battleData.teams[i].players[0].ready = true;
-            await setBattleData(battleData);
-            return;
-        }
-    }
+    return await battleService.joinBattle(authToken, socket);
 }
 
 const handlePlayerAction = async (socket: Socket, actionData: any) => {

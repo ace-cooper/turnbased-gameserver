@@ -1,15 +1,17 @@
 import { BattlePlayerTrait } from "./player.interface";
 import { Socket } from "socket.io";
 
+export type PlayerSocket = Socket;
+
 export class PlayerBattleEntity implements BattlePlayerTrait {
     name: string;
     team: string;
-    socket: Socket;
+    socket: PlayerSocket;
     ready: boolean;
     battleId: string;
     hp: number = 100;
 
-    constructor(public id: string) {
+    constructor(public id: string, public token: string) {
 
     }
 

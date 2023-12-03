@@ -20,10 +20,7 @@ const getBattleData = async () => {
 
 export const tickHandler = async () => { 
     const done = await withCtx<boolean>({ tick }, async (ctx) => {
-        if (tick%300 === 0) { 
-            // log
-            console.log('Battle server tick', tick.toString(), await getBattleData());
-        }
+        // PROCESS ROUND LOGIC
         return battleService.processRound(await getBattleData());
     });
 
