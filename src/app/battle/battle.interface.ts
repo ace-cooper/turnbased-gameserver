@@ -4,6 +4,7 @@ export enum BattleStatus {
     WAITING = 'waiting',
     READY = 'ready',
     RUNNING = 'running',
+    BREAK = 'break',
     FINISHED = 'finished'
 }
 

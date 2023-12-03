@@ -3,11 +3,12 @@ import { BATTLE_SERVER } from "../../src/core/config";
 import { BattleTrait } from "../../src/app/battle/battle.interface";
 import { battleService } from "../../src/app/battle/battle.service";
 import { start as socketServerStart } from "./socket-gateway";
-import { createServer } from "http";
+import { Server, createServer } from "http";
 
 let interval: NodeJS.Timeout;
 let battleData: BattleTrait;
-let tick = BigInt(0);
+let tick = 0; // TODO - use bigint?
+let httpServer: Server<any, any>;
 
 const setBattleData = async (data: BattleTrait) => {
     battleData = data;
@@ -19,26 +20,26 @@ const getBattleData = async () => {
 
 export const handler = async () => { 
     const done = await withCtx<boolean>({ tick }, async (ctx) => {
-        if (tick%BigInt(300) === BigInt(0)) { 
+        if (tick%300 === 0) { 
             // log
             console.log('Battle server tick', tick.toString(), await getBattleData());
         }
-        return false;
+        return battleService.processRound(await getBattleData());
     });
 
     if (done) {
         clearInterval(interval);
 
         try {
+            httpServer.close();
             // log
-            console.log('Battle server stopped after 100 ticks');
+            console.log(`Battle server stopped after ${tick} ticks`);
         } finally {
             return;
         }
     }
 
-    // increment tick
-    tick += BigInt(1);
+    tick++;
 };
 
 export const start = async () => {
@@ -50,8 +51,8 @@ export const start = async () => {
         }
         console.log('Battle server started with ID', battleId);
         // get battle data
-        battleData = await battleService.getBattle(battleId);
-        const httpServer = createServer();
+        battleData = await battleService.getBattleById(battleId);
+        httpServer = createServer();
         // start socket server
         await withCtx({ battleId, tick, setBattleData, getBattleData }, async () => socketServerStart(httpServer));
         httpServer.listen(BATTLE_SERVER.PORT);

@@ -1,8 +1,8 @@
-import { BattlePlayerTrait } from "../player/player.interface";
+import { PlayerBattleEntity } from "../player/player.entity";
 
 export interface BattleTeamTrait {
     id: string;
     name: string;
-    players: BattlePlayerTrait[];
+    players: PlayerBattleEntity[];
     battleId: string;
 }

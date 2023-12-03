@@ -5,6 +5,7 @@ import 'reflect-metadata';
 
 export enum INPUT_LAYER_NAME_PATTERNS {
     GATEWAY = '.gateway.ts',
+    CONTROLLER = '.controller.ts',
 }
 
 const registry = {
@@ -17,6 +18,11 @@ export function Gateway(name: string) {
     };
 }
 
+export function Controller(name: string) {
+    return function (constructor: any) {
+        registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name] = new constructor();
+    };
+}
 
 export const loadClasses = (dir: string, pattern: INPUT_LAYER_NAME_PATTERNS): {
     [key: string]: any
@@ -27,10 +33,8 @@ export const loadClasses = (dir: string, pattern: INPUT_LAYER_NAME_PATTERNS): {
         const stat = fs.statSync(fullPath);
 
         if (stat.isDirectory()) {
-            // If it's a directory, recursively load gateways from it
             loadClasses(fullPath, pattern);
         } else if (stat.isFile() && fullPath.endsWith(pattern)) {
-            // If it's a .gateway.ts file, require it
             require(fullPath);
         }
     };
@@ -61,7 +65,7 @@ export function InjectBattleData(target: any, propertyKey: string, descriptor: P
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-        const ctx = await getCtx(); // Assuming getCtx() is accessible
+        const ctx = await getCtx(); 
         const oldArgs = [...args];
         const battleDataIndex = Reflect.getMetadata('battleData', target, propertyKey);
         if (typeof battleDataIndex === 'number') {
