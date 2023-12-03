@@ -21,7 +21,7 @@ export const handler = async () => {
     const done = await withCtx<boolean>({ tick }, async (ctx) => {
         if (tick%BigInt(300) === BigInt(0)) { 
             // log
-            console.log('Battle server tick', tick.toString());
+            console.log('Battle server tick', tick.toString(), await getBattleData());
         }
         return false;
     });

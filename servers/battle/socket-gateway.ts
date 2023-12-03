@@ -2,18 +2,20 @@ import { Server as HttpServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { BattleTrait } from "../../src/app/battle/battle.interface";
 import { BattlePlayerTrait } from "../../src/app/player/player.interface";
-import { getCtx, getCtxData } from "../../src/core/context";
+import { getCtx, getCtxData, withCtx } from "../../src/core/context";
 import { loadClasses, INPUT_LAYER_NAME_PATTERNS } from "../../src/core/core";
 import path from "path";
 
 const gateways = loadClasses(path.resolve(__dirname, '../../src/app'), INPUT_LAYER_NAME_PATTERNS.GATEWAY);
-console.log('gateways', gateways);
+
 export const start = async (httpServer: HttpServer) => {
     const io = new SocketIOServer(httpServer);
     const ctx = getCtx();
   
-    const battleData = await ctx.get('getBattleData')();
-    const setBattleData = await ctx.get('setBattleData')();
+    const getBattleData = await ctx.get('getBattleData');
+    const battleData = await getBattleData();
+
+    const setBattleData = await ctx.get('setBattleData');
     io.use(async (socket, next) => {
         try {
             const authToken = socket.handshake.headers.token as string; 
@@ -34,7 +36,7 @@ export const start = async (httpServer: HttpServer) => {
 
         socket.on("action", (actionData) => {
             try {   
-                handlePlayerAction(socket, typeof actionData == 'object' ? actionData : JSON.parse(actionData));
+                withCtx({ getBattleData, setBattleData, playerSocket: socket }, () => handlePlayerAction(socket, typeof actionData == 'object' ? actionData : JSON.parse(actionData)));
             } catch(e) {
                 console.log(e);
             }
@@ -56,7 +58,7 @@ const isValidPlayer = (playerId: string, battleData: BattleTrait): boolean => {
     return false;
 };
 
-const handlePlayerAction = (socket: Socket, actionData: any) => {
+const handlePlayerAction = async (socket: Socket, actionData: any) => {
     console.log(`Action received from ${socket.id}:`, actionData);
 
     const gatewayName = Object.keys(actionData)[0];
