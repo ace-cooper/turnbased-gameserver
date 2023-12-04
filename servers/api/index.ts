@@ -12,28 +12,9 @@ app.use(express.urlencoded({ extended: true }));
 
 withCtx({}, async () => Database.withDBM(async () => {
     // TODO
-    app.get('*', async (req, res) => {
+    app.all('*', async (req, res) => {
         const params = req.params;
-        res.json({});
-    });
-    // TODO
-    app.post('*', async (req, res) => {
-        const body = req.body;
-        res.json({});
-    });
-
-    app.delete('*', async (req, res) => {
-        // TODO
-        res.json({});
-    });
-    
-    app.put('*', async (req, res) => {
-        // TODO
-        res.json({});
-    });
-
-    app.patch('*', async (req, res) => {
-        // TODO
+        console.log("new request: ", params, req)
         res.json({});
     });
 

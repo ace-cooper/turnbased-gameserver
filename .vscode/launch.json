@@ -12,5 +12,15 @@
       "envFile": "${workspaceFolder}/.env",
       "args": ["01HGR6DVX57TB4ACGTJC84F78T"]
     },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "DEV API",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": ["--loader", "ts-node/esm", "--experimental-specifier-resolution=node"],
+      "runtimeExecutable": "${env:HOME}/.nvm/versions/node/v16.20.0/bin/node",
+      "program": "${workspaceFolder}/servers/api/index.ts",
+      "envFile": "${workspaceFolder}/.env"
+    }
   ]
 }

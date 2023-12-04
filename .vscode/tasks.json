@@ -20,6 +20,12 @@
             "isBackground": true,
             "problemMatcher": "$tsc-watch",
             "group": "build"
+        },
+        {
+            "label": "start-containers-dev",
+            "type": "shell",
+            "command": "${workspaceFolder}/bin/start-containers.sh dev",
+            "problemMatcher": []
         }
     ]
 }
