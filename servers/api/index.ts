@@ -1,21 +1,28 @@
 import { withCtx } from '../../src/core/context';
 import { Database } from '../../src/core/database';
+import { INPUT_LAYER_NAME_PATTERNS, loadClasses, executePath } from '../../src/core/core';
+import { genId } from '../../src/foundation/utils';
 
 import express from 'express';
+import path from 'path';
 
 // const dotenv = require("dotenv");
 // dotenv.config();
+const controllers = loadClasses(path.resolve(__dirname, '../../src/app'), INPUT_LAYER_NAME_PATTERNS.CONTROLLER);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-withCtx({}, async () => Database.withDBM(async () => {
+withCtx({ ctx: 'API' }, async () => Database.withDBM(async () => {
+
+    
     // TODO
-    app.all('*', async (req, res) => {
+    app.all('/api/*', async (req, res) => {
         const params = req.params;
-        console.log("new request: ", params, req)
-        res.json({});
+        const result = await executePath(params[0], res, req);
+
+        res.json(result);
     });
 
     const port = 30001

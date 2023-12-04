@@ -1,7 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { getCtx } from './context';
+import { getCtx, withCtx } from './context';
 import 'reflect-metadata';
+import { genId } from '../foundation/utils';
+
+const tempMethodRegistry = [];
 
 export enum INPUT_LAYER_NAME_PATTERNS {
     GATEWAY = '.gateway.ts',
@@ -9,7 +12,8 @@ export enum INPUT_LAYER_NAME_PATTERNS {
 }
 
 const registry = {
-    [INPUT_LAYER_NAME_PATTERNS.GATEWAY]: {}
+    [INPUT_LAYER_NAME_PATTERNS.GATEWAY]: {},
+    [INPUT_LAYER_NAME_PATTERNS.CONTROLLER]: {}
 };
 
 export function Gateway(name: string) {
@@ -20,7 +24,23 @@ export function Gateway(name: string) {
 
 export function Controller(name: string) {
     return function (constructor: any) {
-        registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name] = new constructor();
+        constructor.prototype.registryName = name;
+        registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name] = {
+            controller: new constructor(),
+            methods: {
+                GET: {},
+                POST: {},
+                PUT: {},
+                DELETE: {},
+                PATCH: {}
+            }
+        };
+
+        tempMethodRegistry.forEach(methodInfo => {
+            if (methodInfo.target === constructor.prototype) {
+                registerHttpMethod(methodInfo.httpMethod, methodInfo.path, methodInfo.target, methodInfo.propertyKey, methodInfo.descriptor);
+            }
+        });
     };
 }
 
@@ -87,3 +107,118 @@ export function InjectBattleData(target: any, propertyKey: string, descriptor: P
 }
 
 
+export function Param(name: string) {
+    return function (target: Object, propertyKey: string | symbol, parameterIndex: number) {
+        const existingParams = Reflect.getMetadata('routeParams', target, propertyKey) || {};
+        existingParams[name] = parameterIndex;
+        Reflect.defineMetadata('routeParams', existingParams, target, propertyKey);
+    };
+}
+
+async function registerHttpMethod(httpMethod: string, path: string, target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+    const controllerName = target.registryName;
+
+    if (!registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName]) {
+        throw new Error(`Controller ${controllerName} is not registered.`);
+    }
+
+    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path] = target[propertyKey];
+
+}
+
+const injectDescriptorValue = (originalMethod, paramName, paramIndex) => {
+    return async function (...args: any[]) {
+        const oldArgs = [...args];
+        const ctx = await getCtx();
+        const params = ctx.get('params');
+
+        if (params && params.hasOwnProperty(paramName)) {
+            args[paramIndex] = params[paramName];
+        }
+
+        return originalMethod.apply(this, [...args, ...oldArgs]);
+    }
+}
+
+export function Get(path: string) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const routeParams = Reflect.getMetadata('routeParams', target, propertyKey) || {};
+
+        for (const paramName in routeParams) {
+            const paramIndex = routeParams[paramName];
+            if (paramIndex !== undefined) {
+                const originalMethod = descriptor.value;
+                descriptor.value = injectDescriptorValue(originalMethod, paramName, paramIndex);
+            }
+        }
+        tempMethodRegistry.push({ httpMethod: 'GET', path, target, propertyKey, descriptor });
+    };
+}
+
+export function Post(path: string) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        tempMethodRegistry.push({ httpMethod: 'POST', path, target, propertyKey, descriptor });
+    };
+}
+
+export function Put(path: string) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        tempMethodRegistry.push({ httpMethod: 'PUT', path, target, propertyKey, descriptor });
+    };
+}
+
+export function Delete(path: string) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        tempMethodRegistry.push({ httpMethod: 'DELETE', path, target, propertyKey, descriptor });
+    };
+}
+
+export function Patch(path: string) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        tempMethodRegistry.push({ httpMethod: 'PATCH', path, target, propertyKey, descriptor });
+    };
+}
+
+export async function executePath(path: string, res, req) {
+    const { method, params } = matchPath(path);
+    return withCtx({ params, res, req, _id: genId() }, () => method());
+}
+
+function matchPath(incomingPath: string): any {
+
+    const incomingSegments = incomingPath.split('/');
+ 
+    for (const controller in registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER]) {
+        
+        if (controller != incomingSegments[0]) continue;
+
+        incomingSegments.shift();
+        const methods = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controller].methods;
+
+        for (const method in methods.GET) {
+            const registeredSegments = method.split('/');
+        
+            if (registeredSegments.length === incomingSegments.length) {
+                let isMatch = true;
+                let params = {};
+
+                for (let i = 0; i < registeredSegments.length; i++) {
+                    if (registeredSegments[i].startsWith(':')) {
+                        
+                        const paramName = registeredSegments[i].substring(1);
+                        params[paramName] = incomingSegments[i];
+                    } else if (registeredSegments[i] !== incomingSegments[i]) {
+                        isMatch = false;
+                        break;
+                    }
+                }
+
+                if (isMatch) {
+                    return { method: methods.GET[method], params };
+                }
+            }
+        }
+    }
+
+    throw new Error('No matching path found');
+}

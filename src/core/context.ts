@@ -3,14 +3,26 @@ const callContextLocalStorage = createNamespace('main');
 
 export type Ctx = Map<string, any>;
 
+export const spawnNewCtx = async <R>(    
+  ctx: any,
+  block: (ctx: Ctx) => Promise<R>,
+  name = 'main'
+  ) => {
+  const namespace = createNamespace(name);
+  
+  return withCtx(ctx, block, name, namespace);
+};
+
 export const withCtx = async <R>(
     ctx: any,
-    block: (ctx: Ctx) => Promise<R>
+    block: (ctx: Ctx) => Promise<R>,
+    name = 'main',
+    cls = callContextLocalStorage
   ): Promise<R> => {
   const localCtx = { ...ctx };
 
-  return new Promise(async resolve => callContextLocalStorage.run(async (data: Map<string, any>) => {
-    data = getCtx();
+  return new Promise(async resolve => cls.run(async (data: Map<string, any>) => {
+    data = getCtx(name);
     for (const key in localCtx) {
       if (key == 'data') {
         console.warn('Cannot set data key in context');
