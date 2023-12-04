@@ -10,7 +10,7 @@ class BattleService {
   private round: number = 0;
   private startedTick: number = 0;
 
-  async getBattleById(id: string): Promise<BattleTrait> {
+  async getBattleById(id: string, ready = false): Promise<BattleTrait> {
     const player1: PlayerBattleEntity = new PlayerBattleEntity('1', '01HGR1MFE9RR47FR8RT27S7J1W');
     player1.name = 'Player 1';
     player1.team = 'Team 1';
@@ -39,7 +39,8 @@ class BattleService {
             battleId: id
         }],
         status: BattleStatus.WAITING,
-        log: []
+        log: [],
+        ready
     }
   }
 

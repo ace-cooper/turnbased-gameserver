@@ -126,55 +126,60 @@ async function registerHttpMethod(httpMethod: string, path: string, target: any,
 
 }
 
-const injectDescriptorValue = (originalMethod, paramName, paramIndex) => {
-    return async function (...args: any[]) {
-        const oldArgs = [...args];
-        const ctx = await getCtx();
-        const params = ctx.get('params');
-
-        if (params && params.hasOwnProperty(paramName)) {
-            args[paramIndex] = params[paramName];
+const injectDescriptorValue = (originalMethod, target, propertyKey) => {
+    const routeParams = Reflect.getMetadata('routeParams', target, propertyKey) || {};
+    for (const paramName in routeParams) {
+        const paramIndex = routeParams[paramName];
+        if (paramIndex !== undefined) {
+            return async function (...args: any[]) {
+                const oldArgs = [...args];
+                const ctx = await getCtx();
+                const params = ctx.get('params');
+        
+                if (params && params.hasOwnProperty(paramName)) {
+                    args[paramIndex] = params[paramName];
+                }
+        
+                return originalMethod.apply(this, [...args, ...oldArgs]);
+            }
         }
-
-        return originalMethod.apply(this, [...args, ...oldArgs]);
     }
+
+    return originalMethod;
 }
 
 export function Get(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        const routeParams = Reflect.getMetadata('routeParams', target, propertyKey) || {};
 
-        for (const paramName in routeParams) {
-            const paramIndex = routeParams[paramName];
-            if (paramIndex !== undefined) {
-                const originalMethod = descriptor.value;
-                descriptor.value = injectDescriptorValue(originalMethod, paramName, paramIndex);
-            }
-        }
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
         tempMethodRegistry.push({ httpMethod: 'GET', path, target, propertyKey, descriptor });
     };
 }
 
 export function Post(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
         tempMethodRegistry.push({ httpMethod: 'POST', path, target, propertyKey, descriptor });
     };
 }
 
 export function Put(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
         tempMethodRegistry.push({ httpMethod: 'PUT', path, target, propertyKey, descriptor });
     };
 }
 
 export function Delete(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
         tempMethodRegistry.push({ httpMethod: 'DELETE', path, target, propertyKey, descriptor });
     };
 }
 
 export function Patch(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
         tempMethodRegistry.push({ httpMethod: 'PATCH', path, target, propertyKey, descriptor });
     };
 }
