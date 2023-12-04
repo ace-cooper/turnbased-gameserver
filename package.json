@@ -15,7 +15,8 @@
     "typescript": "^5.3.2"
   },
   "workspaces": [
-    "servers/battle"
+    "servers/battle",
+    "servers/api"
   ],
   "dependencies": {
     "cls-hooked": "^4.2.2",

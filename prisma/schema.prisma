@@ -1,0 +1,152 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+  binaryTargets   = ["native", "linux-arm64-openssl-1.0.x", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["player", "battle", "wallet"]
+}
+
+model Player {
+  id               String        @id
+  name             String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  version          String?       @db.VarChar
+  level            Int           @default(1)
+  exp              Int           @default(0)
+  hp               Int           @default(100)
+  rp               Int           @default(100)
+  def              Int           @default(10)
+  atk              Int           @default(10)
+  str              Int           @default(10)
+  agi              Int           @default(10)
+  end              Int           @default(10)
+  luk              Int           @default(10)
+  accountId        String        @unique
+  account          PlayerAccount @relation(fields: [accountId], references: [id])
+  battlesWon       Battle[]      @relation("winner")
+  battlesLost      Battle[]      @relation("loser")
+  battlesAsPlayer1 Battle[]      @relation("player1")
+  battlesAsPlayer2 Battle[]      @relation("player2")
+  PlayerWallet     PlayerWallet[]
+
+  @@index([id])
+
+  @@schema("player")
+}
+
+model PlayerCredentials {
+  id        String        @id
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  accountId String        @unique
+  account   PlayerAccount @relation(fields: [accountId], references: [id])
+  version   String?       @db.VarChar
+
+  providerId  String @unique
+  provider    String
+
+  @@index([id])
+  @@unique([accountId, provider])
+  @@schema("player")
+}
+
+model PlayerAccount {
+  id          String              @id
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  version     String?             @db.VarChar
+  players     Player[]
+  credentials PlayerCredentials[]
+
+  @@index([id])
+
+  @@schema("player")
+}
+
+model PlayerWallet {
+  id         String                  @id
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  version    String?                 @db.VarChar
+  playerId   String                  
+  player     Player                  @relation(fields: [playerId], references: [id])
+  balance    Int                     @default(0)
+  currency   String                  @default("gold")
+  operations PlayerWalletOperation[]
+  snapshots  PlayerWalletSnapshot[]
+
+  @@index([id])
+  @@unique([playerId, currency])
+  @@index([playerId])
+
+  @@schema("wallet")
+}
+
+model PlayerWalletOperation {
+  id           String       @id
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  version      String?      @db.VarChar
+  walletId     String
+  wallet       PlayerWallet @relation(fields: [walletId], references: [id])
+  amount       Int
+  currency     String
+  type         String
+  status       String
+  refCanonical String
+  refId        String
+
+  @@index([id])
+  @@index([walletId])
+
+  @@schema("wallet")
+}
+
+model PlayerWalletSnapshot {
+  id            String       @id
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  version       String?      @db.VarChar
+  walletId      String
+  wallet        PlayerWallet @relation(fields: [walletId], references: [id])
+  startBalance  Int
+  balance       Int
+  currency      String
+  referenceDate DateTime
+
+  @@index([id])
+  @@index([walletId])
+
+  @@schema("wallet")
+}
+
+model Battle {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   String?  @db.VarChar
+  player1Id String?
+  player2Id String?
+  winnerId  String?
+  loserId   String?
+  player1   Player?  @relation("player1", fields: [player1Id], references: [id])
+  player2   Player?  @relation("player2", fields: [player2Id], references: [id])
+  winner    Player?  @relation("winner", fields: [winnerId], references: [id])
+  loser     Player?  @relation("loser", fields: [loserId], references: [id])
+  status    String   @default("waiting")
+  log       Json[]
+
+  @@index([id])
+  @@index([createdAt])
+  @@index([player1Id])
+  @@index([player2Id])
+  @@index([winnerId])
+  @@index([loserId])
+
+  @@schema("battle")
+}

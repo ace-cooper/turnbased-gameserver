@@ -1,0 +1,27 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "migrate-gen": "npx prisma migrate dev --name '_mg' --create-only",
+    "migrate-run": "npx prisma migrate deploy",
+    "db-pull": "npx prisma db pull",
+    "db-show": "npx prisma studio",
+    "db-map": "npx prisma generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.6.0",
+    "cls-hooked": "^4.2.2",
+    "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.2",
+    "nodemon": "^3.0.2",
+    "prisma": "^5.6.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  }
+}
