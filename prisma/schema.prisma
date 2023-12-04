@@ -11,8 +11,8 @@ datasource db {
 }
 
 model Player {
-  id               String        @id
-  name             String?
+  id               String        @id @db.VarChar
+  name             String        @unique @db.VarChar
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   version          String?       @db.VarChar
@@ -26,7 +26,7 @@ model Player {
   agi              Int           @default(10)
   end              Int           @default(10)
   luk              Int           @default(10)
-  accountId        String        @unique
+  accountId        String        @unique @db.VarChar
   account          PlayerAccount @relation(fields: [accountId], references: [id])
   battlesWon       Battle[]      @relation("winner")
   battlesLost      Battle[]      @relation("loser")
@@ -35,20 +35,21 @@ model Player {
   PlayerWallet     PlayerWallet[]
 
   @@index([id])
+  @@index([name])
 
   @@schema("player")
 }
 
 model PlayerCredentials {
-  id        String        @id
+  id        String        @id @db.VarChar
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
-  accountId String        @unique
+  accountId String        @unique @db.VarChar
   account   PlayerAccount @relation(fields: [accountId], references: [id])
   version   String?       @db.VarChar
 
-  providerId  String @unique
-  provider    String
+  providerId  String @unique @db.VarChar
+  provider    String @db.VarChar
 
   @@index([id])
   @@unique([accountId, provider])
@@ -56,7 +57,7 @@ model PlayerCredentials {
 }
 
 model PlayerAccount {
-  id          String              @id
+  id          String              @id @db.VarChar
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   version     String?             @db.VarChar
@@ -69,14 +70,14 @@ model PlayerAccount {
 }
 
 model PlayerWallet {
-  id         String                  @id
+  id         String                  @id @db.VarChar
   createdAt  DateTime                @default(now())
   updatedAt  DateTime                @updatedAt
   version    String?                 @db.VarChar
-  playerId   String                  
+  playerId   String                  @db.VarChar
   player     Player                  @relation(fields: [playerId], references: [id])
   balance    Int                     @default(0)
-  currency   String                  @default("gold")
+  currency   String                  @default("gold") @db.VarChar
   operations PlayerWalletOperation[]
   snapshots  PlayerWalletSnapshot[]
 
@@ -88,18 +89,18 @@ model PlayerWallet {
 }
 
 model PlayerWalletOperation {
-  id           String       @id
+  id           String       @id @db.VarChar
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   version      String?      @db.VarChar
-  walletId     String
+  walletId     String       @db.VarChar
   wallet       PlayerWallet @relation(fields: [walletId], references: [id])
   amount       Int
-  currency     String
-  type         String
-  status       String
-  refCanonical String
-  refId        String
+  currency     String       @db.VarChar
+  type         String       @db.VarChar
+  status       String       @db.VarChar
+  refCanonical String       @db.VarChar
+  refId        String       @db.VarChar
 
   @@index([id])
   @@index([walletId])
@@ -108,15 +109,15 @@ model PlayerWalletOperation {
 }
 
 model PlayerWalletSnapshot {
-  id            String       @id
+  id            String       @id @db.VarChar
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   version       String?      @db.VarChar
-  walletId      String
+  walletId      String       @db.VarChar
   wallet        PlayerWallet @relation(fields: [walletId], references: [id])
   startBalance  Int
   balance       Int
-  currency      String
+  currency      String       @db.VarChar
   referenceDate DateTime
 
   @@index([id])
@@ -126,19 +127,19 @@ model PlayerWalletSnapshot {
 }
 
 model Battle {
-  id        String   @id
+  id        String   @id @db.VarChar
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   version   String?  @db.VarChar
-  player1Id String?
-  player2Id String?
-  winnerId  String?
-  loserId   String?
+  player1Id String?  @db.VarChar
+  player2Id String?  @db.VarChar
+  winnerId  String?  @db.VarChar
+  loserId   String?  @db.VarChar
   player1   Player?  @relation("player1", fields: [player1Id], references: [id])
   player2   Player?  @relation("player2", fields: [player2Id], references: [id])
   winner    Player?  @relation("winner", fields: [winnerId], references: [id])
   loser     Player?  @relation("loser", fields: [loserId], references: [id])
-  status    String   @default("waiting")
+  status    String   @default("waiting") @db.VarChar
   log       Json[]
 
   @@index([id])

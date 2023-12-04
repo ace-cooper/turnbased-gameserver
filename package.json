@@ -20,6 +20,7 @@
   ],
   "dependencies": {
     "cls-hooked": "^4.2.2",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "ulid": "^2.3.0"
   }
 }

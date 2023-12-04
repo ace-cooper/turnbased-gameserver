@@ -11,4 +11,4 @@ else
   source $ROOT_FOLDER/.env
 fi
 
-npm run migrate-run
+npm run migrate-run -w api
