@@ -1,13 +1,13 @@
 # Turn-Based Game Server Prototype (WIP)
 
-This project is a prototype for a core system of a battle server designed for a turn-based fighting game. It showcases the basics of a server that can handle real-time battles through WebSocket connections using socket.io. The architecture of the server is designed to be sufficiently decoupled, allowing it to run efficiently in a single API request.
+This project is a prototype for a core system of a battle server designed for a turn-based fighting game. It showcases the basics of a server that can handle real-time battles through WebSocket connections using socket.io. The architecture of the server is designed to be sufficiently decoupled, allowing it to run efficiently in different contexts, such as within a single API request or as a dedicated app instance.
 
 ## Features
 
 - Real-time battle handling via WebSocket (socket.io).
-- Decoupled battle logic capable of high-performance execution.
+- Decoupled battle logic for high-performance execution.
 - Integrated API server for handling non-real-time game operations.
-- Flexible project structure supporting the addition of new applications, such as a matchmaking server.
+- Flexible project structure supporting new application additions, like a matchmaking server.
 - Monorepo architecture for ease of development and scalability.
 
 ## Getting Started
@@ -33,52 +33,36 @@ This project is a prototype for a core system of a battle server designed for a 
 
 To start developing, follow these steps:
 
-1. Start the required containers:
+1. Launch the servers:
    ```bash
-   ./bin/_start-containers.sh
+   ./bin/start.sh
    ```
-2. Launch development servers:
+2. Refresh all services:
    ```bash
-   ./bin/_dev-servers.sh
-   ```
-3. Run tests:
-   ```bash
-   ./bin/_test-all.sh
-   ```
-4. Refresh all services:
-   ```bash
-   ./bin/_refresh-all.sh
+   ./bin/refresh.sh
    ```
 
 ## Stopping the Servers
 
 To stop the servers and containers, execute:
 
-1. Stop the servers:
+1. Stop the Docker containers:
    ```bash
-   ./bin/_stop-servers.sh
-   ```
-2. Stop the Docker containers:
-   ```bash
-   ./bin/_stop-containers.sh
+   ./bin/stop-containers.sh
    ```
 
 ## Cleanup and Maintenance
 
 For cleaning up the environment:
 
-1. Clean all services:
+1. Prune all unused Docker resources:
    ```bash
-   ./bin/_clean-all.sh
-   ```
-2. Prune all unused Docker resources:
-   ```bash
-   ./bin/_prune-all.sh
+   ./bin/prune-all.sh
    ```
 
 ## Building and Extending
 
-- Build individual applications using `./bin/build.sh` script.
+- To build individual applications, use the `./bin/build.sh` script.
 - To create a new application within the project, run:
   ```bash
   ./bin/create-app.sh <app_name>
@@ -88,4 +72,3 @@ For cleaning up the environment:
 
 - This project is a proof of concept and is open for showcase purposes. It is not concerned with the monorepo versus multi-repo discussion but rather focuses on demonstrating a practical implementation of a game server system.
 - The local API utilizes the PostgreSQL Docker image for database services. However, the battle server does not directly interact with the database.
-
