@@ -37,10 +37,6 @@ To start developing, follow these steps:
    ```bash
    ./bin/start.sh
    ```
-2. Refresh all services:
-   ```bash
-   ./bin/refresh.sh
-   ```
 
 ## Stopping the Servers
 
@@ -50,7 +46,12 @@ To stop the servers and containers, execute:
    ```bash
    ./bin/stop-containers.sh
    ```
-
+   or
+   
+2. Refresh all services:
+   ```bash
+   ./bin/refresh.sh
+   ```
 ## Cleanup and Maintenance
 
 For cleaning up the environment:
