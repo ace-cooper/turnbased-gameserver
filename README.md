@@ -46,12 +46,13 @@ To stop the servers and containers, execute:
    ```bash
    ./bin/stop-containers.sh
    ```
-   or
-   
+or
+
 2. Refresh all services:
    ```bash
    ./bin/refresh.sh
    ```
+
 ## Cleanup and Maintenance
 
 For cleaning up the environment:
@@ -69,7 +70,14 @@ For cleaning up the environment:
   ./bin/create-app.sh <app_name>
   ```
 
+## ToDo
+
+- Implement simple player CRUD operations in the API.
+- Develop a simple matchmaking server/app that will be triggered by a queue (RabbitMQ?) to run battle instances.
+- Utilize the existing Redis cache layer in the core, incorporating a consistent hashing approach, particularly in the API server.
+
 ## Note
 
 - This project is a proof of concept and is open for showcase purposes. It is not concerned with the monorepo versus multi-repo discussion but rather focuses on demonstrating a practical implementation of a game server system.
 - The local API utilizes the PostgreSQL Docker image for database services. However, the battle server does not directly interact with the database.
+- The API does not currently use libraries like `routing-controllers` to create basic features, as the goal was to implement these features manually for fun. However, for time-saving purposes, such libraries might be incorporated in the future.
