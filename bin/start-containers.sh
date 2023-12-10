@@ -18,4 +18,6 @@ echo "Postgres:"
 $ROOT_FOLDER/bin/db-docker-postgresql.sh start $mode $DB_PORT
 echo "Redis:"
 $ROOT_FOLDER/bin/docker-redis.sh start $mode
+echo "RabbitMQ:"
+$ROOT_FOLDER/bin/docker-rabbitmq.sh start $mode
 
