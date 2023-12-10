@@ -126,73 +126,101 @@ async function registerHttpMethod(httpMethod: string, path: string, target: any,
 
 }
 
-const injectDescriptorValue = (originalMethod, target, propertyKey) => {
-    const routeParams = Reflect.getMetadata('routeParams', target, propertyKey) || {};
-    for (const paramName in routeParams) {
-        const paramIndex = routeParams[paramName];
-        if (paramIndex !== undefined) {
-            return async function (...args: any[]) {
-                const oldArgs = [...args];
-                const ctx = await getCtx();
-                const params = ctx.get('params');
-        
-                if (params && params.hasOwnProperty(paramName)) {
-                    args[paramIndex] = params[paramName];
-                }
-        
-                return originalMethod.apply(this, [...args, ...oldArgs]);
+const injectDescriptorValue = (originalMethod, target, propertyKey, injectData?: { body?: boolean; query?: boolean; }) => {
+    return async function (...args: any[]) {
+        const oldArgs = [...args];
+        const ctx = await getCtx();
+    
+        const routeParams = Reflect.getMetadata('routeParams', target, propertyKey) || {};
+        for (const paramName in routeParams) {
+            const paramIndex = routeParams[paramName];
+            if (paramIndex !== undefined) {
+                    const params = ctx.get('params');
+            
+                    if (params && params.hasOwnProperty(paramName)) {
+                        args[paramIndex] = params[paramName];
+                    }
+            
             }
         }
-    }
 
-    return originalMethod;
+        if (injectData?.body) {
+            const bodyIndex = Reflect.getMetadata('body', target, propertyKey);
+
+            if (typeof bodyIndex === 'number') {
+                args[bodyIndex] = ctx.get('body');
+            }
+        }
+
+        if (injectData?.query) {
+            const queryIndex = Reflect.getMetadata('query', target, propertyKey);
+            if (typeof queryIndex === 'number') {
+                args[queryIndex] = ctx.get('query');
+            }
+        }
+
+        return originalMethod.apply(this, [...args, ...oldArgs]);
+    }
 }
 
 export function Get(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
 
-        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey, { query: true });
         tempMethodRegistry.push({ httpMethod: 'GET', path, target, propertyKey, descriptor });
+    };
+}
+
+export function Query() {
+    return function (target: Object, propertyKey: string | symbol, parameterIndex: number) {
+        Reflect.defineMetadata('query', parameterIndex, target, propertyKey);
     };
 }
 
 export function Post(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey, { body: true, query: true });
         tempMethodRegistry.push({ httpMethod: 'POST', path, target, propertyKey, descriptor });
+    };
+}
+
+export function Body() {
+    return function (target: Object, propertyKey: string | symbol, parameterIndex: number) {
+        Reflect.defineMetadata('body', parameterIndex, target, propertyKey);
     };
 }
 
 export function Put(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey, { body: true, query: true });
         tempMethodRegistry.push({ httpMethod: 'PUT', path, target, propertyKey, descriptor });
     };
 }
 
 export function Delete(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey, { query: true });
         tempMethodRegistry.push({ httpMethod: 'DELETE', path, target, propertyKey, descriptor });
     };
 }
 
 export function Patch(path: string) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey);
+        descriptor.value = injectDescriptorValue(descriptor.value, target, propertyKey, { body: true, query: true });
         tempMethodRegistry.push({ httpMethod: 'PATCH', path, target, propertyKey, descriptor });
     };
 }
 
 export async function executePath(path: string, res, req) {
-    const { method, params } = matchPath(path);
-    return withCtx({ params, res, req, _id: genId() }, () => method());
+    const { method, params } = matchPath(path, req.method.toUpperCase() as any);
+
+    return withCtx({ params, res, req, _id: genId(), body: req.body || {}, query: req.query || {}, headers: (typeof req.headers == 'function' ? req.headers() : req.headers) || {} }, () => method());
 }
 
-function matchPath(incomingPath: string): any {
+function matchPath(incomingPath: string, requestMethod: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'): any {
 
     const incomingSegments = incomingPath.split('/');
- 
+
     for (const controller in registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER]) {
         
         if (controller != incomingSegments[0]) continue;
@@ -200,7 +228,7 @@ function matchPath(incomingPath: string): any {
         incomingSegments.shift();
         const methods = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controller].methods;
 
-        for (const method in methods.GET) {
+        for (const method in methods[requestMethod]) {
             const registeredSegments = method.split('/');
         
             if (registeredSegments.length === incomingSegments.length) {
@@ -219,7 +247,7 @@ function matchPath(incomingPath: string): any {
                 }
 
                 if (isMatch) {
-                    return { method: methods.GET[method], params };
+                    return { method: methods[requestMethod][method], params };
                 }
             }
         }

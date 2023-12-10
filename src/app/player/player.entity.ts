@@ -1,7 +1,31 @@
+import { Database } from "../../core/database";
 import { BattlePlayerTrait } from "./player.interface";
 import { Socket } from "socket.io";
+import { Prisma } from "@prisma/client";
+import { PlayerAccount } from "../playerAccount/playerAccount.entity";
 
 export type PlayerSocket = Socket;
+
+export class Player extends Database.BaseEntity implements Prisma.PlayerUncheckedCreateInput {
+    name: string;
+    level?: number;
+    exp?: number;
+    hp?: number;
+    rp?: number;
+    def?: number;
+    atk?: number;
+    str?: number;
+    agi?: number;
+    end?: number;
+    luk?: number;
+    accountId: string;
+    account?: PlayerAccount;
+    PlayerWallet?: any;
+
+    public static get repository() {
+        return Database.getCurrentDBMX().player;
+    }
+}
 
 export class PlayerBattleEntity implements BattlePlayerTrait {
     name: string;

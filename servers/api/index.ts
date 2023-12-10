@@ -19,10 +19,15 @@ withCtx({ ctx: 'API' }, async () => Database.withDBM(async () => {
     
     // TODO
     app.all('/api/*', async (req, res) => {
-        const params = req.params;
-        const result = await executePath(params[0], res, req);
+        try {
+            const params = req.params;
+            const result = await executePath(params[0], res, req);
 
-        res.json(result);
+            res.json(result);
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     const port = 30001

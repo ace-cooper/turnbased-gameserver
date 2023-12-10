@@ -14,6 +14,7 @@ CREATE TABLE "player"."Player" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
     "level" INTEGER NOT NULL DEFAULT 1,
     "exp" INTEGER NOT NULL DEFAULT 0,
     "hp" INTEGER NOT NULL DEFAULT 100,
@@ -36,6 +37,7 @@ CREATE TABLE "player"."PlayerCredentials" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "accountId" VARCHAR NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
     "providerId" VARCHAR NOT NULL,
     "provider" VARCHAR NOT NULL,
 
@@ -48,6 +50,8 @@ CREATE TABLE "player"."PlayerAccount" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
+    "name" VARCHAR NOT NULL,
 
     CONSTRAINT "PlayerAccount_pkey" PRIMARY KEY ("id")
 );
@@ -58,6 +62,7 @@ CREATE TABLE "wallet"."PlayerWallet" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
     "playerId" VARCHAR NOT NULL,
     "balance" INTEGER NOT NULL DEFAULT 0,
     "currency" VARCHAR NOT NULL DEFAULT 'gold',
@@ -71,6 +76,7 @@ CREATE TABLE "wallet"."PlayerWalletOperation" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
     "walletId" VARCHAR NOT NULL,
     "amount" INTEGER NOT NULL,
     "currency" VARCHAR NOT NULL,
@@ -88,6 +94,7 @@ CREATE TABLE "wallet"."PlayerWalletSnapshot" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
     "walletId" VARCHAR NOT NULL,
     "startBalance" INTEGER NOT NULL,
     "balance" INTEGER NOT NULL,
@@ -103,6 +110,7 @@ CREATE TABLE "battle"."Battle" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "version" VARCHAR,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
     "player1Id" VARCHAR,
     "player2Id" VARCHAR,
     "winnerId" VARCHAR,

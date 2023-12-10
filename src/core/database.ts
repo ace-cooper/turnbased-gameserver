@@ -81,7 +81,11 @@ export namespace Database {
         constructor(public readonly target: T) {}
       
         public get repository() {
-          return this.target['repo'];
+          return this.target['repository'];
+        }
+
+        public static factory<E extends BaseService<C>, C extends BaseEntity>(entityClass: { new(target: C): E }): E {
+          return new entityClass(new (this as any as {new(): C})());
         }
       
         public async findById(id: string, bypassCache?: boolean): Promise<T> {
@@ -109,6 +113,9 @@ export namespace Database {
         }
 
         public async create(data: Partial<T>): Promise<T> {
+            data.id = data.id || genId();
+            data.version = data.version || genVr();
+  
             const entity = await this.repository.create({ data });
             try {
                 const key = Cache.normalizeKey(this.target['name'], entity.id);

@@ -16,6 +16,7 @@ model Player {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   version          String?       @db.VarChar
+  deleted    Boolean             @default(false)
   level            Int           @default(1)
   exp              Int           @default(0)
   hp               Int           @default(100)
@@ -33,6 +34,7 @@ model Player {
   battlesAsPlayer1 Battle[]      @relation("player1")
   battlesAsPlayer2 Battle[]      @relation("player2")
   PlayerWallet     PlayerWallet[]
+  
 
   @@index([id])
   @@index([name])
@@ -47,6 +49,7 @@ model PlayerCredentials {
   accountId String        @unique @db.VarChar
   account   PlayerAccount @relation(fields: [accountId], references: [id])
   version   String?       @db.VarChar
+  deleted    Boolean             @default(false)
 
   providerId  String @unique @db.VarChar
   provider    String @db.VarChar
@@ -61,6 +64,8 @@ model PlayerAccount {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   version     String?             @db.VarChar
+  deleted    Boolean              @default(false)
+  name        String              @db.VarChar
   players     Player[]
   credentials PlayerCredentials[]
 
@@ -74,6 +79,7 @@ model PlayerWallet {
   createdAt  DateTime                @default(now())
   updatedAt  DateTime                @updatedAt
   version    String?                 @db.VarChar
+  deleted    Boolean                 @default(false)
   playerId   String                  @db.VarChar
   player     Player                  @relation(fields: [playerId], references: [id])
   balance    Int                     @default(0)
@@ -93,6 +99,7 @@ model PlayerWalletOperation {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   version      String?      @db.VarChar
+  deleted      Boolean      @default(false)
   walletId     String       @db.VarChar
   wallet       PlayerWallet @relation(fields: [walletId], references: [id])
   amount       Int
@@ -113,6 +120,7 @@ model PlayerWalletSnapshot {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   version       String?      @db.VarChar
+  deleted       Boolean      @default(false)
   walletId      String       @db.VarChar
   wallet        PlayerWallet @relation(fields: [walletId], references: [id])
   startBalance  Int
@@ -131,6 +139,7 @@ model Battle {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   version   String?  @db.VarChar
+  deleted   Boolean  @default(false)
   player1Id String?  @db.VarChar
   player2Id String?  @db.VarChar
   winnerId  String?  @db.VarChar
