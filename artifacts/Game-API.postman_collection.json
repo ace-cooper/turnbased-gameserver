@@ -1,0 +1,129 @@
+{
+	"info": {
+		"_postman_id": "b23201ce-f0ad-4efd-94c9-943894115c91",
+		"name": "Game API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "24562314"
+	},
+	"item": [
+		{
+			"name": "Battle",
+			"item": [
+				{
+					"name": "Battle",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:30001/api/battle/log/uuid_test",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "30001",
+							"path": [
+								"api",
+								"battle",
+								"log",
+								"uuid_test"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Account",
+			"item": [
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Ace-Cooper\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:30001/api/account/v1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "30001",
+							"path": [
+								"api",
+								"account",
+								"v1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Player",
+			"item": [
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Ace-Cooper\",\n    \"accountId\": \"01HHA9QGCSS2N9DHNQ2A59A74F\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:30001/api/player/v1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "30001",
+							"path": [
+								"api",
+								"player",
+								"v1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "View",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:30001/api/player/v1/01HHA9WHFA67AWZG1YWNYN1E8K",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "30001",
+							"path": [
+								"api",
+								"player",
+								"v1",
+								"01HHA9WHFA67AWZG1YWNYN1E8K"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
