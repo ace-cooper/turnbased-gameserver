@@ -23,5 +23,6 @@ if [ "$result" != '0' ]; then
   echo "Failed to initialize pg docker"
   exit $result
 else
-  npx ts-node $ROOT_FOLDER/servers/battle/index.ts
+  # npx ts-node $ROOT_FOLDER/servers/battle/index.ts
+  echo "Docker containers are up and running"
 fi
