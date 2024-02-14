@@ -1,6 +1,6 @@
 # Turn-Based Game Server Prototype (WIP)
 
-This project is a prototype for a core system of a battle server designed for a turn-based fighting game. It showcases the basics of a server that can handle real-time battles through WebSocket connections using socket.io. The architecture of the server is designed to be sufficiently decoupled, allowing it to run efficiently in different contexts, such as within a single API request or as a dedicated app instance.
+This project is a prototype for a core system of a battle server designed for a turn-based fighting game. It showcases the basics of a server that can handle real-time battles through WebSocket connections using socket.io. The server architecture is designed to be sufficiently decoupled, allowing it to run efficiently in different contexts, such as within a single API request or as a dedicated app instance.
 
 ## Features
 
