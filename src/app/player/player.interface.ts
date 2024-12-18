@@ -10,4 +10,13 @@ export interface BattlePlayerTrait {
     battleId: string;
     isNPC: boolean;
     hp: number;
+    mhp: number;
+    energy: number;
+    menergy: number;
+    mp: number;
+    mmp: number
+    str: number;
+    agi: number;
+    stm: number;
+    active?: boolean;
 }
