@@ -1,6 +1,6 @@
 import { getCtx, withCtx } from "../../core/context";
 import { Controller, Get, Param } from "../../core/core";
-import { BattleTrait } from "./battle.interface";
+import { BattleEntity, BattleTrait } from "./battle.interface";
 import { battleService } from "./battle.service";
 
 @Controller('battle')
@@ -11,7 +11,7 @@ class BattleController {
         console.log('battle.log', battleId);
         let battleData = await battleService.getBattleById(battleId, true);
         let tick = 0;
-        const setBattleData = async (data: BattleTrait) => {
+        const setBattleData = async (data: BattleEntity) => {
             battleData = data;
         };
         

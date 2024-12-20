@@ -1,16 +1,16 @@
 import { withCtx } from "../../src/core/context";
 import { BATTLE_SERVER } from "../../src/core/config";
-import { BattleTrait } from "../../src/app/battle/battle.interface";
+import { BattleEntity } from "../../src/app/battle/battle.interface";
 import { battleService } from "../../src/app/battle/battle.service";
 import { start as socketServerStart } from "./socket-gateway";
 import { Server, createServer, get } from "http";
 
 let interval: NodeJS.Timeout;
-let battleData: BattleTrait;
+let battleData: BattleEntity;
 let tick = 0; // TODO - use bigint?
 let httpServer: Server<any, any>;
 
-const setBattleData = async (data: BattleTrait) => {
+const setBattleData = async (data: BattleEntity) => {
     battleData = data;
 };
 

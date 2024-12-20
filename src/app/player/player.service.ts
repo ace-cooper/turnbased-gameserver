@@ -14,7 +14,7 @@ class PlayerService extends Database.BaseService<Player> {
             atk: 1,
             str: 1,
             agi: 1,
-            end: 1,
+            stm: 1,
             luk: 1,
             accountId
         }
