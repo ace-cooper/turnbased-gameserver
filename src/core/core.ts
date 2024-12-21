@@ -253,5 +253,5 @@ function matchPath(incomingPath: string, requestMethod: 'GET' | 'POST' | 'PATCH'
         }
     }
 
-    throw new Error('No matching path found');
+    throw { status: 404, message: 'Not found' };
 }
