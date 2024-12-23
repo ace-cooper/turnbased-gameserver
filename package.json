@@ -20,6 +20,9 @@
   ],
   "dependencies": {
     "cls-hooked": "^4.2.2",
+    "generic-pool": "^3.9.0",
+    "ioredis": "^5.4.2",
+    "redlock": "^5.0.0-beta.2",
     "reflect-metadata": "^0.1.13",
     "ulid": "^2.3.0"
   }
