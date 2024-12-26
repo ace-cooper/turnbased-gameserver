@@ -2,7 +2,9 @@ import { Body, Controller, Get, Param, Post } from "../../core/core";
 import { playerAccountService } from "../playerAccount/playerAccount.service";
 import { playerService } from "./player.service";
 
-@Controller('player')
+@Controller('player', {
+    namespace: "api"
+})
 class PlayerController {
 
     @Post('v1')

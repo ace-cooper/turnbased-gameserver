@@ -3,8 +3,13 @@ import path from 'path';
 import { getCtx, withCtx } from './context';
 import 'reflect-metadata';
 import { genId } from '../foundation/utils';
+import { Guard, Interceptor, Middleware } from './entity';
+import { devMode } from './config';
 
 const tempMethodRegistry = [];
+const guardsRegistry = [];
+const interceptorsRegistry = [];
+const middlewaresRegistry = [];
 
 export enum INPUT_LAYER_NAME_PATTERNS {
     GATEWAY = '.gateway.ts',
@@ -22,8 +27,14 @@ export function Gateway(name: string) {
     };
 }
 
-export function Controller(name: string) {
+const namespaces = {};
+
+export function Controller(name: string, options?: { guards?: Guard[], middleware?: Middleware[], interceptors?: Interceptor[], namespace?: string }) {
     return function (constructor: any) {
+        if (!!options?.namespace) {
+            namespaces[options?.namespace] = true;
+            name = `${options?.namespace}/${name}`;
+        }
         constructor.prototype.registryName = name;
         registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name] = {
             controller: new constructor(),
@@ -33,6 +44,28 @@ export function Controller(name: string) {
                 PUT: {},
                 DELETE: {},
                 PATCH: {}
+            },
+            functions: {},
+            guards: async () => {
+                for (const guard of options?.guards || []) {
+                    const result = await guard.canActivate();
+        
+                    if (!result) {
+                        throw new Error('Unauthorized');
+                    }
+                }
+            },
+            middleware: async () => {
+                for (const middleware of options?.middleware || []) {
+                    await middleware.use();
+                }
+            },
+            interceptors: async (data?: any) => {
+                for (const interceptor of options?.interceptors || []) {
+                    data = await interceptor.use(data);
+                }
+
+                return data;
             }
         };
 
@@ -41,6 +74,27 @@ export function Controller(name: string) {
                 registerHttpMethod(methodInfo.httpMethod, methodInfo.path, methodInfo.target, methodInfo.propertyKey, methodInfo.descriptor);
             }
         });
+
+        guardsRegistry.forEach(guardInfo => {
+            if (guardInfo.target === constructor.prototype) {
+                const {httpMethod, path} = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name].functions[guardInfo.propertyKey];
+                addGuardsToMethod(guardInfo.target.registryName, httpMethod, path, guardInfo.guards);
+            }
+        });
+
+        interceptorsRegistry.forEach(interceptorInfo => {
+            if (interceptorInfo.target === constructor.prototype) {
+                const {httpMethod, path} = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name].functions[interceptorInfo.propertyKey];
+                addInterceptorsToMethod(interceptorInfo.target.registryName, httpMethod, path, interceptorInfo.interceptors);
+            }
+        });
+
+        middlewaresRegistry.forEach(middlewareInfo => {
+            if (middlewareInfo.target === constructor.prototype) {
+                const {httpMethod, path} = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][name].functions[middlewareInfo.propertyKey];
+                addMiddlewaresToMethod(middlewareInfo.target.registryName, httpMethod, path, middlewareInfo.interceptors);
+            }
+        });        
     };
 }
 
@@ -122,11 +176,79 @@ async function registerHttpMethod(httpMethod: string, path: string, target: any,
         throw new Error(`Controller ${controllerName} is not registered.`);
     }
 
-    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path] = target[propertyKey];
+    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path] = target[propertyKey].bind(target);
+    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].functions[propertyKey] = {
+        httpMethod,
+        path
+    };
 
 }
 
-const injectDescriptorValue = (originalMethod, target, propertyKey, injectData?: { body?: boolean; query?: boolean; }) => {
+async function addMiddlewaresToMethod(controllerName: string, httpMethod: string, path: string, middlewares: Middleware[]) {
+
+    if (!registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName]) {
+        throw new Error(`Controller ${controllerName} is not registered.`);
+    }
+
+    const method = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path];
+
+    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path] = async () => {
+
+        await Promise.all(middlewares.map(middleware => middleware.use()));
+
+        return await method();
+    }
+}
+
+async function addGuardsToMethod(controllerName: string, httpMethod: string, path: string, guards: Guard[]) {
+
+    if (!registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName]) {
+        throw new Error(`Controller ${controllerName} is not registered.`);
+    }
+
+    const method = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path];
+
+    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path] = async () => {
+        for (const guard of guards) {
+            const result = await guard.canActivate();
+
+            if (!result) {
+                throw {
+                    status: 401,
+                    message: 'Unauthorized',
+                    passed: false
+                };
+            }
+        }
+
+        return await method();
+    }
+}
+
+async function addInterceptorsToMethod(controllerName: string, httpMethod: string, path: string, interceptors: Interceptor[]) {
+
+    if (!registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName]) {
+        throw new Error(`Controller ${controllerName} is not registered.`);
+    }
+
+    const method = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path];
+
+    registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controllerName].methods[httpMethod][path] = async () => {
+        let result = await method();
+        for (const interceptor of interceptors) {
+            result = await interceptor.use(result);
+        }
+
+        return result;
+    }
+}
+
+const injectDescriptorValue = (originalMethod, target, propertyKey, injectData?: { 
+    body?: boolean; 
+    query?: boolean; 
+    tokenData?: boolean;
+    user?: boolean;
+}) => {
     return async function (...args: any[]) {
         const oldArgs = [...args];
         const ctx = await getCtx();
@@ -148,14 +270,78 @@ const injectDescriptorValue = (originalMethod, target, propertyKey, injectData?:
             const bodyIndex = Reflect.getMetadata('body', target, propertyKey);
 
             if (typeof bodyIndex === 'number') {
-                args[bodyIndex] = ctx.get('body');
+                const metadata = Reflect.getMetadata('body', target, propertyKey);
+                if (metadata) {
+    
+                    let {index: bodyIndex, validator} = metadata;
+    
+                    if (typeof bodyIndex === 'number') {
+                        args[bodyIndex] = ctx.get('body');
+    
+            
+                        if (validator) {
+                            validator = new validator();
+                    
+                            for (const key in args[bodyIndex]) {
+                                    validator[key] = args[bodyIndex][key];
+                            }
+    
+                            try {
+                                const validate = await validator.validate();
+                                
+                                if (validate) {                            
+                                    const res = ctx.get('res');
+                                    res?.status(400)?.json(validate);
+                                    throw {...validate, status: 400};
+                                }
+                            } catch (e) {                        
+                            
+                                throw { passed: false, errors: e, status: 400 };
+                            }
+                        }
+                    }
+                }
             }
         }
 
         if (injectData?.query) {
-            const queryIndex = Reflect.getMetadata('query', target, propertyKey);
-            if (typeof queryIndex === 'number') {
-                args[queryIndex] = ctx.get('query');
+            const metadata = Reflect.getMetadata('query', target, propertyKey);
+
+            if (metadata) {
+                let {index, validator } = metadata;
+                if (typeof index === 'number') {
+                    args[index] = ctx.get('query');
+
+                    if (validator) {
+                        validator = new validator();
+                
+                        for (const key in args[index]) {
+                            validator[key] = args[index][key];
+                        }
+
+                        try {
+                            const validate = await validator.validate();
+                            
+                            if (validate) {                            
+                                const res = ctx.get('res');
+                                res?.status(400)?.json(validate);
+                                throw {...validate, status: 400};
+                            }
+                        } catch (e) {                        
+                        
+                            throw { passed: false, errors: e, status: 400 };
+                        }
+                    }
+                }
+            }
+        }
+
+        const ctxDataIndex = Reflect.getMetadata('ctxData', target, propertyKey);
+        if (typeof ctxDataIndex === 'object') {
+            const ctx = getCtx();
+            for (let key in ctxDataIndex) {
+                const data = ctx.get(key);
+                args[ctxDataIndex[key]] = data;
             }
         }
 
@@ -171,9 +357,12 @@ export function Get(path: string) {
     };
 }
 
-export function Query() {
+export function Query<C>(validator?: C) {
     return function (target: Object, propertyKey: string | symbol, parameterIndex: number) {
-        Reflect.defineMetadata('query', parameterIndex, target, propertyKey);
+        Reflect.defineMetadata('query', {
+            index: parameterIndex,
+            validator
+        }, target, propertyKey);
     };
 }
 
@@ -184,9 +373,12 @@ export function Post(path: string) {
     };
 }
 
-export function Body() {
+export function Body<C>(validator?: C) {
     return function (target: Object, propertyKey: string | symbol, parameterIndex: number) {
-        Reflect.defineMetadata('body', parameterIndex, target, propertyKey);
+        Reflect.defineMetadata('body', {
+            index: parameterIndex,
+            validator
+        }, target, propertyKey);
     };
 }
 
@@ -211,15 +403,99 @@ export function Patch(path: string) {
     };
 }
 
-export async function executePath(path: string, res, req) {
-    const { method, params } = matchPath(path, req.method.toUpperCase() as any);
-
-    return withCtx({ params, res, req, _id: genId(), body: req.body || {}, query: req.query || {}, headers: (typeof req.headers == 'function' ? req.headers() : req.headers) || {} }, () => method());
+export function ContextValue(name: string) {
+    return function (target: Object, propertyKey: string | symbol, parameterIndex: number) {
+        const ctxData = Reflect.getMetadata('ctxData', target, propertyKey) || {};
+        ctxData[name] = parameterIndex;
+        Reflect.defineMetadata('ctxData', ctxData, target, propertyKey);
+    };
 }
 
-function matchPath(incomingPath: string, requestMethod: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'): any {
+export function UseGuards(...guards: Guard[]) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        guardsRegistry.push({ guards, target, propertyKey, descriptor });
+    };
+}
+
+export function UseInterceptors(...interceptors: Interceptor[]) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        interceptorsRegistry.push({ interceptors, target, propertyKey, descriptor });
+    };
+}
+
+export function UseMiddlewares(...middlewares: Middleware[]) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        middlewaresRegistry.push({ interceptors: middlewares, target, propertyKey, descriptor });
+    };
+}
+
+function getPathNS(path: string) {
+    for (const ns in namespaces) {
+        if (path.startsWith(ns)) {
+            return ns;
+        }
+    }   
+}
+
+function normalizePath(path: string) {
+   const ns = getPathNS(path);
+
+   if (ns) {
+       return {
+        ns,
+        path: path.substring(ns.length+1)
+       }
+   }
+
+   return { path, ns };
+}
+
+export async function executePath(_path: string, res, req) {
+    const {path, ns} = normalizePath(_path);
+    const { method, params, middleware, guards, interceptors } = matchPath(path, req.method.toUpperCase() as any, ns);
+    const ctx = getCtx();
+    ctx.set('params', params);
+    ctx.set('_id', genId());
+    ctx.set('res', res);
+    ctx.set('req', req);
+    ctx.set('headers', (typeof req.headers == 'function' ? req.headers() : req.headers) || {} );
+    ctx.set('body', req.body || {});
+    ctx.set('query', req.query || {});
+    
+    try {
+ 
+        await middleware();
+        await guards();
+
+        let result = await method();
+
+        result = await interceptors(result);
+
+        return result;
+    } catch (e) {
+        if (devMode) console.log(e);
+        return {...e, status: e?.status || 500, passed: false};
+    }
+}
+
+function matchPath(incomingPath: string, requestMethod: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', namespace?: string): any {
 
     const incomingSegments = incomingPath.split('/');
+    if (incomingSegments[0]?.[0]?.toLowerCase() == "v") {
+       const version = incomingSegments.shift();
+       
+       if (!incomingSegments?.[1]) {
+        incomingSegments.push("/");
+       }
+
+       incomingSegments[0] = `${version}/${incomingSegments[0]}`;
+    } else if (!incomingSegments?.[1]) {
+        incomingSegments.push("/");
+    }
+
+    if (!!namespace) {
+        incomingSegments[0] = `${namespace}/${incomingSegments[0]}`;
+    }
 
     for (const controller in registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER]) {
         
@@ -229,7 +505,7 @@ function matchPath(incomingPath: string, requestMethod: 'GET' | 'POST' | 'PATCH'
         const methods = registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controller].methods;
 
         for (const method in methods[requestMethod]) {
-            const registeredSegments = method.split('/');
+            const registeredSegments = method == '/' ? [method] : method.split('/');
         
             if (registeredSegments.length === incomingSegments.length) {
                 let isMatch = true;
@@ -247,7 +523,13 @@ function matchPath(incomingPath: string, requestMethod: 'GET' | 'POST' | 'PATCH'
                 }
 
                 if (isMatch) {
-                    return { method: methods[requestMethod][method], params };
+                    return { 
+                        method: methods[requestMethod][method], 
+                        params, 
+                        guards: registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controller].guards,
+                        middleware: registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controller].middleware,
+                        interceptors: registry[INPUT_LAYER_NAME_PATTERNS.CONTROLLER][controller].interceptors,
+                    };
                 }
             }
         }

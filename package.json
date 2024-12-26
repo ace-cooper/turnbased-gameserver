@@ -20,6 +20,7 @@
     "servers/api"
   ],
   "dependencies": {
+    "class-validator": "^0.14.1",
     "cls-hooked": "^4.2.2",
     "generic-pool": "^3.9.0",
     "ioredis": "^5.4.2",

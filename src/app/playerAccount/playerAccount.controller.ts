@@ -2,7 +2,9 @@ import { getCtx } from "../../core/context";
 import { Body, Controller, Param, Post } from "../../core/core";
 import { playerAccountService } from "./playerAccount.service";
 
-@Controller('account')
+@Controller('account', {
+    namespace: "api"
+})
 class AccountController {
 
     @Post('v1')

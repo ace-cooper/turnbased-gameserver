@@ -3,8 +3,10 @@ import { Controller, Get, Param } from "../../core/core";
 import { BattleEntity, BattleTrait } from "./battle.interface";
 import { battleService } from "./battle.service";
 
-@Controller('battle')
-class BattleController {
+@Controller('battle', {
+    namespace: 'api'
+})
+export class BattleController {
 
     @Get('log/:uuid')
     public async battleLog(@Param('uuid') battleId: string) {

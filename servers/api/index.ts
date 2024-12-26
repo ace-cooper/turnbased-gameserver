@@ -38,7 +38,7 @@ app.use(async (req, res, next) => await withCtx({ ctx: 'API' }, async () => Data
     next();
 })));
 
-app.all('/api/*', async (req, res) => {
+app.all('/*', async (req, res) => {
     try {
         const params = req.params;
         const result: any = await executePath(params[0], res, req);
